@@ -1,17 +1,26 @@
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
     return (
-        <Text style = { styles.initBox }>hello</Text>
+        <View style = { styles.initBox }>
+        <Text style = { styles.container }>hello</Text>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    initBox : {
+    container: {
         backgroundColor: "blue",
         color: "white",
-        padding: 10,
+        padding: 50,
         margin: 10,
         textAlign: "center",
+    },
+
+    initBox : {
+        display: "flex",
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
     }
 });

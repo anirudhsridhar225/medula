@@ -1,26 +1,29 @@
-import { StyleSheet, Text, SafeAreaView } from 'react-native';
-
+import Medicine from '@/components/Medicine';
+import { StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
     return (
-        <SafeAreaView style = { styles.overallContainer }>
-            <Text style = { styles.initBox }>hello</Text>
-        </SafeAreaView>
+        <View style = { styles.overallContainer }>
+            <Text style = { styles.initBox }>your medicines</Text>
+            <Medicine medName="Paracetamol" count={10} />
+            <Medicine medName="Anthraprazole" count={15} />
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     initBox : {
-        backgroundColor: "blue",
         color: "white",
-        padding: 10,
-        margin: 10,
-        textAlign: "center",
-        justifyContent: "center",
-        alignItems: "center",
+        fontSize: 30,
+        fontWeight: "bold",
+        textTransform: "capitalize",
     },
 
     overallContainer : {
-        display: "flex",
+        flex: 1,
+        marginTop: 40,
+        margin: 10,
+        paddingTop: 60,
+        paddingHorizontal: 20,
     }
 });
