@@ -121,7 +121,8 @@ const styles = StyleSheet.create({
         color: "black",
         fontSize: 20,
         textAlign: "right",
-        width: "10%",
+        width: "20%",
+        paddingRight: 20
     },
     increase: {
         backgroundColor: "green",
