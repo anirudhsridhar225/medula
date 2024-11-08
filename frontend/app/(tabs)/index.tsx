@@ -66,6 +66,30 @@ export default function HomeScreen() {
     setModalVisible(!modalVisible);
   };
 
+  const handleMedicineDeletion = async (medName: string) => {
+    try {
+      const updatedMeds = addedMeds.filter((med) => med.medName !== medName);
+      setAddedMeds(updatedMeds);
+    } catch (e) {
+      console.error("Error deleting medicine:", e);
+    }
+  };
+
+  const handleMedicineUpdation = async (medName: string, newCount: number) => {
+    try {
+      const updatedMeds = addedMeds.map((med) => {
+        if (med.medName === medName) {
+          return { ...med, count: newCount };
+        }
+        return med;
+      });
+      setAddedMeds(updatedMeds);
+      await saveMedicineData();
+    } catch (e) {
+      console.error("Error updating medicine:", e);
+    }
+  };
+
   const toggleModal = () => {
     setModalVisible(!modalVisible);
     setNewMed(initialMedState);
@@ -77,7 +101,13 @@ export default function HomeScreen() {
         <Text style={styles.initBox}>your medicines</Text>
         <View style={styles.medComponents}>
           {addedMeds.map((med, i) => (
-            <Medicine key={i} medName={med.medName} count={med.count} />
+            <Medicine 
+              key={i} 
+              medName={med.medName} 
+              count={med.count} 
+              onDelete={handleMedicineDeletion} 
+              onUpdate={handleMedicineUpdation}
+            />
           ))}
         </View>
       </View>
@@ -161,7 +191,6 @@ const styles = StyleSheet.create({
   medComponents: {
     marginTop: 20,
   },
-  keyboard: {},
   input: {
     padding: 20,
     backgroundColor: "white",
