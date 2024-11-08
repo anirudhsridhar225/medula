@@ -1,5 +1,4 @@
-import Medicine from "@/components/Medicine";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -10,6 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Medicine from "@/components/Medicine";
 
 type Med = {
   medName: string;
@@ -26,10 +27,37 @@ export default function HomeScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [addedMeds, setAddedMeds] = useState<Med[]>([]);
 
-  const handleMedicineAddition = () => {
-    console.log(newMed);
+  useEffect(() => {
+    loadMedicineData();
+  }, []);
 
-    if (newMed.medName.trim() === "" && newMed.count <= 0) {
+  useEffect(() => {
+    saveMedicineData();
+  }, [addedMeds]);
+
+  const loadMedicineData = async () => {
+    try {
+      const jsonValue = await AsyncStorage.getItem("medicines");
+      if (jsonValue !== null) {
+        setAddedMeds(JSON.parse(jsonValue));
+      } else {
+        console.log("No medicine data found in AsyncStorage");
+      }
+    } catch (e) {
+      console.error("Error loading medicine data:", e);
+    }
+  };
+
+  const saveMedicineData = async () => {
+    try {
+      await AsyncStorage.setItem("medicines", JSON.stringify(addedMeds));
+    } catch (e) {
+      console.error("Error saving medicine data:", e);
+    }
+  };
+
+  const handleMedicineAddition = () => {
+    if (newMed.medName.trim() === "" || newMed.count <= 0) {
       return;
     }
 
@@ -48,9 +76,9 @@ export default function HomeScreen() {
       <View style={styles.medsWrapper}>
         <Text style={styles.initBox}>your medicines</Text>
         <View style={styles.medComponents}>
-          {addedMeds.map((med, i) => {
-            return <Medicine key={i} medName={med.medName} count={med.count} />;
-          })}
+          {addedMeds.map((med, i) => (
+            <Medicine key={i} medName={med.medName} count={med.count} />
+          ))}
         </View>
       </View>
 
@@ -68,17 +96,17 @@ export default function HomeScreen() {
           <Text style={styles.modalSubHeading}>Medicine Name:</Text>
           <TextInput
             style={styles.input}
-            placeholder={`Add a new medicine`}
+            placeholder="Add a new medicine"
             value={newMed.medName}
             onChangeText={(text) =>
               setNewMed((prev) => ({ ...prev, medName: text }))
             }
           />
-          
+
           <Text style={styles.modalSubHeading}>Medicine Count:</Text>
           <TextInput
             style={styles.input}
-            placeholder={`How much medicine`}
+            placeholder="How much medicine"
             keyboardType="numeric"
             value={newMed.count.toString()}
             onChangeText={(text) => {
@@ -89,20 +117,13 @@ export default function HomeScreen() {
 
           <View style={styles.modalOperations}>
             <TouchableOpacity
-              onPress={() => {
-                handleMedicineAddition();
-              }}
+              onPress={handleMedicineAddition}
               style={styles.addMedicine}
             >
               <Text style={styles.addText}>Add</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => {
-                toggleModal();
-              }}
-              style={styles.closeModal}
-            >
+            <TouchableOpacity onPress={toggleModal} style={styles.closeModal}>
               <Text style={styles.addText}>Close</Text>
             </TouchableOpacity>
           </View>
