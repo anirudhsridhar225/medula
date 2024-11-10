@@ -8,24 +8,38 @@ import {
 	TextInput,
 	TouchableOpacity,
 	View,
+	Switch,
+	Alert,
 } from "react-native";
+import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scheduleMedicineNotification, cancelMedicineNotifications } from "@/components/NotificationService";
 import Medicine from "@/components/Medicine";
 
 type Med = {
 	medName: string;
 	count: number;
+	hasAlarm: boolean;
+	alarmTime?: {
+		hour: number;
+		minute: number;
+	};
+	days: number[];
 };
 
 const initialMedState: Med = {
 	medName: "",
 	count: 0,
+	hasAlarm: false,
+	alarmTime: undefined,
+	days: [],
 };
 
 export default function HomeScreen() {
 	const [newMed, setNewMed] = useState<Med>(initialMedState);
 	const [modalVisible, setModalVisible] = useState(false);
 	const [addedMeds, setAddedMeds] = useState<Med[]>([]);
+	const [showTimePicker, setShowTimePicker] = useState(false);
 
 	useEffect(() => {
 		loadMedicineData();
@@ -56,18 +70,52 @@ export default function HomeScreen() {
 		}
 	};
 
-	const handleMedicineAddition = () => {
+	const handleMedicineAddition = async () => {
 		if (newMed.medName.trim() === "" || newMed.count <= 0) {
 			return;
 		}
 
-		setAddedMeds([...addedMeds, newMed]);
-		setNewMed(initialMedState);
-		setModalVisible(!modalVisible);
+		// Validate alarm settings if alarm is enabled
+		if (newMed.hasAlarm && !newMed.alarmTime) {
+			alert("Please set a time for the alarm");
+			return;
+		}
+
+		if (newMed.hasAlarm && newMed.days.length === 0) {
+			alert("Please select at least one day for the alarm");
+			return;
+		}
+
+		try {
+			if (newMed.hasAlarm && newMed.alarmTime) {
+				const notificationIds = await scheduleMedicineNotification(
+					newMed.medName,
+					newMed.alarmTime,
+					newMed.days,
+				);
+
+				if (!notificationIds) {
+					Alert.alert(
+						"Notification Permission Required",
+						"Please enable notifications in your device settings to receive medicine reminders."
+					);
+					return;
+				}
+			}
+
+			setAddedMeds([...addedMeds, newMed]);
+			setNewMed(initialMedState);
+			setModalVisible(!modalVisible);
+		} catch (e) {
+			console.error("Error setting up notifications:", e);
+			Alert.alert("Error", "Error setting up notifications");
+		}
 	};
 
 	const handleMedicineDeletion = async (medName: string) => {
 		try {
+			await cancelMedicineNotifications(medName);
+
 			const updatedMeds = addedMeds.filter((med) => med.medName !== medName);
 			setAddedMeds(updatedMeds);
 		} catch (e) {
@@ -93,6 +141,29 @@ export default function HomeScreen() {
 	const toggleModal = () => {
 		setModalVisible(!modalVisible);
 		setNewMed(initialMedState);
+		setShowTimePicker(false);
+	};
+
+	const onTimeSelected = (event: any, selectedDate?: Date) => {
+		setShowTimePicker(false);
+		if (selectedDate && event.type !== 'dismissed') {
+			setNewMed(prev => ({
+				...prev,
+				alarmTime: {
+					hour: selectedDate.getHours(),
+					minute: selectedDate.getMinutes()
+				}
+			}));
+		}
+	};
+
+	const toggleDay = (dayIndex: number) => {
+		setNewMed(prev => ({
+			...prev,
+			days: prev.days.includes(dayIndex)
+				? prev.days.filter(d => d !== dayIndex)
+				: [...prev.days, dayIndex]
+		}));
 	};
 
 	return (
@@ -105,6 +176,9 @@ export default function HomeScreen() {
 							key={i}
 							medName={med.medName}
 							count={med.count}
+							hasAlarm={med.hasAlarm}
+							alarmTime={med.alarmTime}
+							days={med.days}
 							onDelete={handleMedicineDeletion}
 							onUpdate={handleMedicineUpdation}
 						/>
@@ -123,6 +197,7 @@ export default function HomeScreen() {
 					style={styles.modal}
 				>
 					<Text style={styles.modalHeading}>Add a new medicine</Text>
+
 					<Text style={styles.modalSubHeading}>Medicine Name:</Text>
 					<TextInput
 						style={styles.input}
@@ -144,6 +219,62 @@ export default function HomeScreen() {
 							setNewMed((prev) => ({ ...prev, count }));
 						}}
 					/>
+
+					<View style={styles.alarmSection}>
+						<Text style={styles.modalSubHeading}>Set Reminder:</Text>
+						<Switch
+							value={newMed.hasAlarm}
+							onValueChange={(value) =>
+								setNewMed((prev) => ({ ...prev, hasAlarm: value }))
+							}
+						/>
+					</View>
+
+					{newMed.hasAlarm && (
+						<>
+							<TouchableOpacity
+								style={styles.timeSelector}
+								onPress={() => setShowTimePicker(true)}
+							>
+								<Text style={styles.timeSelectorText}>
+									{newMed.alarmTime
+										? `${newMed.alarmTime.hour}:${newMed.alarmTime.minute.toString().padStart(2, '0')}`
+										: "Select Time"
+									}
+								</Text>
+							</TouchableOpacity>
+
+							<View style={styles.daysContainer}>
+								{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+									<TouchableOpacity
+										key={day}
+										style={[
+											styles.dayButton,
+											newMed.days.includes(index) && styles.selectedDay
+										]}
+										onPress={() => toggleDay(index)}
+									>
+										<Text style={[
+											styles.dayText,
+											newMed.days.includes(index) && styles.selectedDayText
+										]}>
+											{day}
+										</Text>
+									</TouchableOpacity>
+								))}
+							</View>
+						</>
+					)}
+
+					{showTimePicker && (
+						<DateTimePicker
+							value={new Date()}
+							mode="time"
+							is24Hour={false}
+							display="default"
+							onChange={onTimeSelected}
+						/>
+					)}
 
 					<View style={styles.modalOperations}>
 						<TouchableOpacity
@@ -231,7 +362,7 @@ const styles = StyleSheet.create({
 	modal: {
 		position: "absolute",
 		flexDirection: "column",
-		height: "70%",
+		height: "80%", // Increased height to accommodate new components
 		width: "100%",
 		backgroundColor: "white",
 		borderRadius: 20,
@@ -270,5 +401,51 @@ const styles = StyleSheet.create({
 		color: "black",
 		marginVertical: 5,
 		fontSize: 20,
+	},
+	alarmSection: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		marginVertical: 10,
+	},
+	timeSelector: {
+		backgroundColor: '#f0f0f0',
+		padding: 15,
+		borderRadius: 10,
+		alignItems: 'center',
+		marginVertical: 10,
+	},
+	timeSelectorText: {
+		fontSize: 18,
+		width: 100,
+		textAlign: 'center',
+		color: '#333',
+	},
+	daysContainer: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		justifyContent: 'space-between',
+		marginVertical: 10,
+		paddingHorizontal: 10,
+	},
+	dayButton: {
+		padding: 10,
+		borderRadius: 20,
+		borderWidth: 1,
+		borderColor: '#ccc',
+		marginVertical: 5,
+		width: 45,
+		alignItems: 'center',
+	},
+	selectedDay: {
+		backgroundColor: '#007AFF',
+		borderColor: '#007AFF',
+	},
+	dayText: {
+		fontSize: 12,
+		color: '#333',
+	},
+	selectedDayText: {
+		color: 'white',
 	},
 });

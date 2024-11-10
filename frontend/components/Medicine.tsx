@@ -13,18 +13,32 @@ import {
  * Component representing a single medicine item, with options to add, remove, delete, and update its count.
  * @param medName - The name of the medicine.
  * @param count - The initial count of the medicine.
+ * @param hasAlarm - Whether the medicine has an alarm set.
+ * @param alarmTime - Optional object containing hour and minute for the alarm.
+ * @param days - Array of days when the alarm should trigger.
  * @param onDelete - Callback function to delete the medicine.
  * @param onUpdate - Callback function to update the medicine count.
  */
 
+interface AlarmTime {
+	hour: number;
+	minute: number;
+}
+
 const Medicine = ({
-	medName,
-	count,
-	onDelete,
-	onUpdate,
-}: {
+					  medName,
+					  count,
+					  hasAlarm,
+					  alarmTime,
+					  days,
+					  onDelete,
+					  onUpdate,
+				  }: {
 	medName: string;
 	count: number;
+	hasAlarm: boolean;
+	alarmTime?: AlarmTime;
+	days: number[];
 	onDelete: (medName: string) => void;
 	onUpdate: (medName: string, newCount: number) => void;
 }) => {
@@ -56,6 +70,20 @@ const Medicine = ({
 		console.log(`You have ${newCount} ${medName} now`);
 	};
 
+	const formatTime = (time?: AlarmTime) => {
+		if (!time) return '';
+		const hour = time.hour;
+		const minute = time.minute.toString().padStart(2, '0');
+		const period = hour >= 12 ? 'PM' : 'AM';
+		const displayHour = hour % 12 || 12;
+		return `${displayHour}:${minute} ${period}`;
+	};
+
+	const getDayNames = (dayIndices: number[]) => {
+		const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+		return dayIndices.map(index => days[index]).join(', ');
+	};
+
 	return (
 		<View>
 			<Modal
@@ -70,6 +98,16 @@ const Medicine = ({
 				<View style={styles.centeredView}>
 					<View style={styles.modalView}>
 						<Text style={styles.modalText}>{medName}</Text>
+						{hasAlarm && alarmTime && (
+							<View style={styles.alarmInfo}>
+								<Text style={styles.alarmText}>
+									Reminder: {formatTime(alarmTime)}
+								</Text>
+								<Text style={styles.alarmText}>
+									Days: {getDayNames(days)}
+								</Text>
+							</View>
+						)}
 						<View style={styles.valueButtons}>
 							<Pressable style={styles.increase} onPress={handleAddition}>
 								<Text style={styles.textStyle}>Add {medName}</Text>
@@ -106,7 +144,14 @@ const Medicine = ({
 						<View style={styles.pill2}></View>
 					</View>
 
-					<Text style={styles.medTextStyle}>{medName}</Text>
+					<View style={styles.medInfo}>
+						<Text style={styles.medTextStyle}>{medName}</Text>
+						{hasAlarm && alarmTime && (
+							<Text style={styles.alarmTimeStyle}>
+								{formatTime(alarmTime)}
+							</Text>
+						)}
+					</View>
 					<Text style={styles.medCountStyle}>{currCount}</Text>
 				</View>
 			</TouchableNativeFeedback>
@@ -127,6 +172,7 @@ const styles = StyleSheet.create({
 		borderRadius: 10,
 		borderColor: "white",
 		borderWidth: 1,
+		alignItems: "center",
 	},
 	medicinePill: {
 		flexDirection: "column",
@@ -145,18 +191,25 @@ const styles = StyleSheet.create({
 		backgroundColor: "red",
 		flex: 1,
 	},
+	medInfo: {
+		flex: 1,
+		paddingLeft: 10,
+	},
 	medTextStyle: {
 		color: "black",
 		fontSize: 20,
-		width: "80%",
-		paddingLeft: 10,
+	},
+	alarmTimeStyle: {
+		color: "gray",
+		fontSize: 14,
+		marginTop: 4,
 	},
 	medCountStyle: {
 		color: "black",
 		fontSize: 20,
 		textAlign: "right",
-		width: "20%",
 		paddingRight: 20,
+		width: "40%"
 	},
 	increase: {
 		backgroundColor: "green",
@@ -191,6 +244,15 @@ const styles = StyleSheet.create({
 		fontSize: 30,
 		width: "100%",
 		textAlign: "center",
+	},
+	alarmInfo: {
+		marginBottom: 20,
+		alignItems: "center",
+	},
+	alarmText: {
+		fontSize: 16,
+		color: "gray",
+		marginBottom: 5,
 	},
 	textStyle: {
 		color: "white",

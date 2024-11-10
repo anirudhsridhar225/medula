@@ -4,6 +4,7 @@ import { useFonts } from 'expo-font';
 import { useEffect } from "react";
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
+import { initializeNotifications } from "@/components/NotificationService";
 
 import { useColorScheme } from "react-native";
 
@@ -20,6 +21,10 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  useEffect(() => {
+    initializeNotifications();
+  }, []);
 
   if (!loaded) {
     return null;
