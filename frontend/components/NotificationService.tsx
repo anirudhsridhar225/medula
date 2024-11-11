@@ -1,8 +1,6 @@
-// notificationService.ts
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-// Configure notification behavior
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
         shouldShowAlert: true,
@@ -16,14 +14,12 @@ export const scheduleMedicineNotification = async (
     alarmTime: { hour: number; minute: number },
     days: number[]
 ) => {
-    // Request permissions
     const { status } = await Notifications.requestPermissionsAsync();
     if (status !== 'granted') {
         alert('You need to grant notification permissions to set medicine reminders.');
         return null;
     }
 
-    // Cancel any existing notifications for this medicine
     const existingNotifications = await Notifications.getAllScheduledNotificationsAsync();
     const medicineNotifications = existingNotifications.filter(
         notification => notification.content.data.medName === medName
@@ -33,14 +29,13 @@ export const scheduleMedicineNotification = async (
         await Notifications.cancelScheduledNotificationAsync(notification.identifier);
     }
 
-    // Schedule new notifications for each selected day
     const notificationIds = [];
 
     for (const day of days) {
         const trigger = {
             hour: alarmTime.hour,
             minute: alarmTime.minute,
-            weekday: day + 1, // Adding 1 because expo-notifications uses 1-7 for days
+            weekday: day + 1,
             repeats: true,
         };
 
@@ -75,7 +70,6 @@ export const cancelMedicineNotifications = async (medName: string) => {
     }
 };
 
-// Initialize notifications in App.tsx
 export const initializeNotifications = async () => {
     if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('default', {
