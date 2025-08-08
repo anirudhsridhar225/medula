@@ -1,13 +1,18 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import { useState } from "react";
 import {
-	Alert,
-	Modal,
-	Pressable,
-	StyleSheet,
-	Text,
-	TouchableNativeFeedback,
-	View,
+    Alert,
+    View,
 } from "react-native";
+import {
+    Button,
+    Card,
+    Chip,
+    Dialog,
+    Portal,
+    Text,
+    useTheme
+} from 'react-native-paper';
 
 /**
  * Component representing a single medicine item, with options to add, remove, delete, and update its count.
@@ -84,192 +89,92 @@ const Medicine = ({
 		return dayIndices.map(index => days[index]).join(', ');
 	};
 
+	const theme = useTheme();
+
 	return (
-		<View>
-			<Modal
-				animationType="slide"
-				transparent={true}
-				visible={modalVisible}
-				onRequestClose={() => {
-					Alert.alert("modal has been closed.");
-					setModalVisible(!modalVisible);
-				}}
-			>
-				<View style={styles.centeredView}>
-					<View style={styles.modalView}>
-						<Text style={styles.modalText}>{medName}</Text>
+		<View style={{ marginBottom: 12 }}>
+			<Portal>
+				<Dialog visible={modalVisible} onDismiss={() => setModalVisible(false)}>
+					<Dialog.Title>{medName}</Dialog.Title>
+					<Dialog.Content>
 						{hasAlarm && alarmTime && (
-							<View style={styles.alarmInfo}>
-								<Text style={styles.alarmText}>
-									Reminder: {formatTime(alarmTime)}
-								</Text>
-								<Text style={styles.alarmText}>
-									Days: {getDayNames(days)}
-								</Text>
+							<View style={{ marginBottom: 16 }}>
+								<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+									<MaterialIcons name="alarm" size={16} color={theme.colors.primary} />
+									<Text variant="bodyMedium" style={{ marginLeft: 8 }}>
+										Reminder: {formatTime(alarmTime)}
+									</Text>
+								</View>
+								<View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+									{days.map(dayIndex => {
+										const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+										return (
+											<Chip key={dayIndex} style={{ margin: 2 }} compact>
+												{dayNames[dayIndex]}
+											</Chip>
+										);
+									})}
+								</View>
 							</View>
 						)}
-						<View style={styles.valueButtons}>
-							<Pressable style={styles.increase} onPress={handleAddition}>
-								<Text style={styles.textStyle}>Add {medName}</Text>
-							</Pressable>
+						<Text variant="bodyLarge" style={{ textAlign: 'center', marginVertical: 16 }}>
+							Current Count: {currCount}
+						</Text>
+					</Dialog.Content>
+					<Dialog.Actions>
+						<Button onPress={handleSubtraction} disabled={currCount <= 0}>
+							Remove
+						</Button>
+						<Button onPress={handleAddition}>
+							Add
+						</Button>
+						<Button onPress={handleDeletion} textColor={theme.colors.error}>
+							Delete
+						</Button>
+						<Button onPress={() => setModalVisible(false)}>
+							Close
+						</Button>
+					</Dialog.Actions>
+				</Dialog>
+			</Portal>
 
-							<Pressable style={styles.decrease} onPress={handleSubtraction}>
-								<Text style={styles.textStyle}>Remove {medName}</Text>
-							</Pressable>
+			<Card onPress={() => setModalVisible(true)} style={{ marginBottom: 8 }}>
+				<Card.Content>
+					<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+						<View style={{ flex: 1 }}>
+							<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+								<MaterialIcons 
+									name="medical-services" 
+									size={24} 
+									color={theme.colors.primary} 
+									style={{ marginRight: 12 }}
+								/>
+								<Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
+									{medName}
+								</Text>
+							</View>
+							{hasAlarm && alarmTime && (
+								<View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 36 }}>
+									<MaterialIcons name="alarm" size={16} color={theme.colors.onSurfaceVariant} />
+									<Text variant="bodySmall" style={{ marginLeft: 4, color: theme.colors.onSurfaceVariant }}>
+										{formatTime(alarmTime)}
+									</Text>
+								</View>
+							)}
 						</View>
-						<Pressable
-							style={styles.closeButton}
-							onPress={() => handleDeletion()}
-						>
-							<Text style={styles.textStyle}>Delete {medName}</Text>
-						</Pressable>
-						<Pressable
-							style={styles.closeButton}
-							onPress={() => setModalVisible(!modalVisible)}
-						>
-							<Text style={styles.textStyle}>Close</Text>
-						</Pressable>
-					</View>
-				</View>
-			</Modal>
-
-			<TouchableNativeFeedback
-				onPress={() => {
-					setModalVisible(true);
-				}}
-			>
-				<View style={styles.medContainer}>
-					<View style={styles.medicinePill}>
-						<View style={styles.pill1}></View>
-						<View style={styles.pill2}></View>
-					</View>
-
-					<View style={styles.medInfo}>
-						<Text style={styles.medTextStyle}>{medName}</Text>
-						{hasAlarm && alarmTime && (
-							<Text style={styles.alarmTimeStyle}>
-								{formatTime(alarmTime)}
+						<View style={{ alignItems: 'center' }}>
+							<Text variant="headlineSmall" style={{ fontWeight: 'bold', color: theme.colors.primary }}>
+								{currCount}
 							</Text>
-						)}
+							<Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+								pills
+							</Text>
+						</View>
 					</View>
-					<Text style={styles.medCountStyle}>{currCount}</Text>
-				</View>
-			</TouchableNativeFeedback>
+				</Card.Content>
+			</Card>
 		</View>
 	);
 };
 
 export default Medicine;
-
-const styles = StyleSheet.create({
-	medContainer: {
-		flexDirection: "row",
-		backgroundColor: "white",
-		marginVertical: 5,
-		marginTop: 20,
-		paddingVertical: 10,
-		paddingHorizontal: 20,
-		borderRadius: 10,
-		borderColor: "white",
-		borderWidth: 1,
-		alignItems: "center",
-	},
-	medicinePill: {
-		flexDirection: "column",
-		height: 25,
-		width: 15,
-		marginRight: 10,
-		borderRadius: 25,
-		transform: [{ rotate: "45deg" }],
-		overflow: "hidden",
-	},
-	pill1: {
-		backgroundColor: "blue",
-		flex: 1,
-	},
-	pill2: {
-		backgroundColor: "red",
-		flex: 1,
-	},
-	medInfo: {
-		flex: 1,
-		paddingLeft: 10,
-	},
-	medTextStyle: {
-		color: "black",
-		fontSize: 20,
-	},
-	alarmTimeStyle: {
-		color: "gray",
-		fontSize: 14,
-		marginTop: 4,
-	},
-	medCountStyle: {
-		color: "black",
-		fontSize: 20,
-		textAlign: "right",
-		paddingRight: 20,
-		width: "40%"
-	},
-	increase: {
-		backgroundColor: "green",
-		padding: 25,
-		borderRadius: 10,
-		margin: 10,
-		width: "50%",
-	},
-	decrease: {
-		backgroundColor: "red",
-		padding: 25,
-		borderRadius: 10,
-		margin: 10,
-		width: "50%",
-	},
-	centeredView: {
-		flex: 1,
-		marginTop: 22,
-	},
-	modalView: {
-		position: "absolute",
-		bottom: 0,
-		backgroundColor: "white",
-		borderRadius: 20,
-		padding: 30,
-		width: "100%",
-		height: "60%",
-		alignItems: "center",
-	},
-	modalText: {
-		marginBottom: 15,
-		fontSize: 30,
-		width: "100%",
-		textAlign: "center",
-	},
-	alarmInfo: {
-		marginBottom: 20,
-		alignItems: "center",
-	},
-	alarmText: {
-		fontSize: 16,
-		color: "gray",
-		marginBottom: 5,
-	},
-	textStyle: {
-		color: "white",
-		textAlign: "center",
-		justifyContent: "center",
-		alignItems: "center",
-		fontSize: 20,
-	},
-	valueButtons: {
-		flexDirection: "row",
-		marginTop: 20,
-	},
-	closeButton: {
-		backgroundColor: "red",
-		padding: 20,
-		margin: 10,
-		borderRadius: 10,
-		width: "40%",
-	}
-});

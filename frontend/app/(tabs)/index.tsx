@@ -1,20 +1,30 @@
-import React, { useState, useEffect } from "react";
+import Medicine from "@/components/Medicine";
+import { cancelMedicineNotifications, scheduleMedicineNotification } from "@/components/NotificationService";
+import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import DateTimePicker from '@react-native-community/datetimepicker';
+import React, { useEffect, useState } from "react";
 import {
-	KeyboardAvoidingView,
-	Modal,
-	Platform,
+	Alert,
+	ScrollView,
 	StyleSheet,
+	useColorScheme,
+	View
+} from "react-native";
+import {
+	Appbar,
+	Button,
+	Card,
+	Chip,
+	Dialog,
+	FAB,
+	Portal,
+	Switch,
 	Text,
 	TextInput,
-	TouchableOpacity,
-	View,
-	Switch,
-	Alert,
-} from "react-native";
-import DateTimePicker from '@react-native-community/datetimepicker';
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { scheduleMedicineNotification, cancelMedicineNotifications } from "@/components/NotificationService";
-import Medicine from "@/components/Medicine";
+	useTheme
+} from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Med = {
 	medName: string;
@@ -40,6 +50,8 @@ export default function HomeScreen() {
 	const [modalVisible, setModalVisible] = useState(false);
 	const [addedMeds, setAddedMeds] = useState<Med[]>([]);
 	const [showTimePicker, setShowTimePicker] = useState(false);
+	const theme = useTheme();
+	const colorScheme = useColorScheme();
 
 	useEffect(() => {
 		loadMedicineData();
@@ -167,141 +179,142 @@ export default function HomeScreen() {
 	};
 
 	return (
-		<View style={styles.overallContainer}>
-			<View style={styles.medsWrapper}>
-				<Text style={styles.initBox}>your medicines</Text>
-				<View style={styles.medComponents}>
-					{addedMeds.map((med, i) => (
-						<Medicine
-							key={i}
-							medName={med.medName}
-							count={med.count}
-							hasAlarm={med.hasAlarm}
-							alarmTime={med.alarmTime}
-							days={med.days}
-							onDelete={handleMedicineDeletion}
-							onUpdate={handleMedicineUpdation}
-						/>
-					))}
-				</View>
-			</View>
-
-			<Modal
-				animationType="slide"
-				transparent={true}
-				visible={modalVisible}
-				onRequestClose={toggleModal}
-			>
-				<KeyboardAvoidingView
-					behavior={Platform.OS === "ios" ? "padding" : "height"}
-					style={styles.modal}
-				>
-					<Text style={styles.modalHeading}>Add a new medicine</Text>
-
-					<Text style={styles.modalSubHeading}>Medicine Name:</Text>
-					<TextInput
-						style={styles.input}
-						placeholder="Add a new medicine"
-						value={newMed.medName}
-						onChangeText={(text) =>
-							setNewMed((prev) => ({ ...prev, medName: text }))
-						}
-					/>
-
-					<Text style={styles.modalSubHeading}>Medicine Count:</Text>
-					<TextInput
-						style={styles.input}
-						placeholder="How much medicine"
-						keyboardType="numeric"
-						value={newMed.count.toString()}
-						onChangeText={(text) => {
-							const count = text === "" ? 0 : parseInt(text);
-							setNewMed((prev) => ({ ...prev, count }));
-						}}
-					/>
-
-					<View style={styles.alarmSection}>
-						<Text style={styles.modalSubHeading}>Set Reminder:</Text>
-						<Switch
-							value={newMed.hasAlarm}
-							onValueChange={(value) =>
-								setNewMed((prev) => ({ ...prev, hasAlarm: value }))
-							}
-						/>
+		<SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+			<Appbar.Header>
+				<Appbar.Content title="Your Medicines" />
+			</Appbar.Header>
+			
+			<ScrollView style={{ flex: 1, padding: 16 }}>
+				{addedMeds.length === 0 ? (
+					<Card style={{ marginVertical: 20, padding: 20 }}>
+						<Card.Content style={{ alignItems: 'center' }}>
+							<MaterialIcons 
+								name="medical-services" 
+								size={64} 
+								color={theme.colors.primary} 
+								style={{ marginBottom: 16 }}
+							/>
+							<Text variant="headlineSmall" style={{ textAlign: 'center', marginBottom: 8 }}>
+								No medicines added yet
+							</Text>
+							<Text variant="bodyMedium" style={{ textAlign: 'center', color: theme.colors.onSurfaceVariant }}>
+								Tap the + button to add your first medicine
+							</Text>
+						</Card.Content>
+					</Card>
+				) : (
+					<View>
+						{addedMeds.map((med, i) => (
+							<Medicine
+								key={i}
+								medName={med.medName}
+								count={med.count}
+								hasAlarm={med.hasAlarm}
+								alarmTime={med.alarmTime}
+								days={med.days}
+								onDelete={handleMedicineDeletion}
+								onUpdate={handleMedicineUpdation}
+							/>
+						))}
 					</View>
+				)}
+			</ScrollView>
 
-					{newMed.hasAlarm && (
-						<>
-							<TouchableOpacity
-								style={styles.timeSelector}
-								onPress={() => setShowTimePicker(true)}
-							>
-								<Text style={styles.timeSelectorText}>
+			<FAB
+				icon="plus"
+				style={{
+					position: 'absolute',
+					margin: 16,
+					right: 0,
+					bottom: 0,
+				}}
+				onPress={toggleModal}
+			/>
+
+			<Portal>
+				<Dialog visible={modalVisible} onDismiss={toggleModal}>
+					<Dialog.Title>Add New Medicine</Dialog.Title>
+					<Dialog.Content>
+						<TextInput
+							label="Medicine Name"
+							value={newMed.medName}
+							onChangeText={(text) =>
+								setNewMed((prev) => ({ ...prev, medName: text }))
+							}
+							style={{ marginBottom: 16 }}
+						/>
+
+						<TextInput
+							label="Medicine Count"
+							keyboardType="numeric"
+							value={newMed.count.toString()}
+							onChangeText={(text) => {
+								const count = text === "" ? 0 : parseInt(text);
+								setNewMed((prev) => ({ ...prev, count }));
+							}}
+							style={{ marginBottom: 16 }}
+						/>
+
+						<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+							<Text variant="bodyMedium" style={{ flex: 1 }}>Set Reminder</Text>
+							<Switch
+								value={newMed.hasAlarm}
+								onValueChange={(value) =>
+									setNewMed((prev) => ({ ...prev, hasAlarm: value }))
+								}
+							/>
+						</View>
+
+						{newMed.hasAlarm && (
+							<>
+								<Button
+									mode="outlined"
+									onPress={() => setShowTimePicker(true)}
+									style={{ marginBottom: 16 }}
+								>
 									{newMed.alarmTime
 										? `${newMed.alarmTime.hour}:${newMed.alarmTime.minute.toString().padStart(2, '0')}`
 										: "Select Time"
 									}
+								</Button>
+
+								<Text variant="bodyMedium" style={{ marginBottom: 8 }}>
+									Select Days:
 								</Text>
-							</TouchableOpacity>
-
-							<View style={styles.daysContainer}>
-								{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-									<TouchableOpacity
-										key={day}
-										style={[
-											styles.dayButton,
-											newMed.days.includes(index) && styles.selectedDay
-										]}
-										onPress={() => toggleDay(index)}
-									>
-										<Text style={[
-											styles.dayText,
-											newMed.days.includes(index) && styles.selectedDayText
-										]}>
+								<View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 16 }}>
+									{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+										<Chip
+											key={day}
+											selected={newMed.days.includes(index)}
+											onPress={() => toggleDay(index)}
+											style={{ margin: 2 }}
+										>
 											{day}
-										</Text>
-									</TouchableOpacity>
-								))}
-							</View>
-						</>
-					)}
+										</Chip>
+									))}
+								</View>
+							</>
+						)}
 
-					{showTimePicker && (
-						<DateTimePicker
-							value={new Date()}
-							mode="time"
-							is24Hour={false}
-							display="default"
-							onChange={onTimeSelected}
-						/>
-					)}
-
-					<View style={styles.modalOperations}>
-						<TouchableOpacity
-							onPress={handleMedicineAddition}
-							style={styles.addMedicine}
-						>
-							<Text style={styles.addText}>Add</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity onPress={toggleModal} style={styles.closeModal}>
-							<Text style={styles.addText}>Close</Text>
-						</TouchableOpacity>
-					</View>
-				</KeyboardAvoidingView>
-			</Modal>
-
-			<TouchableOpacity
-				style={styles.addWrapper}
-				onPress={() => {
-					toggleModal();
-				}}
-			>
-				<View style={styles.addButton}>
-					<Text style={styles.addButtonText}>+</Text>
-				</View>
-			</TouchableOpacity>
-		</View>
+						{showTimePicker && (
+							<DateTimePicker
+								value={new Date()}
+								mode="time"
+								is24Hour={false}
+								display="default"
+								onChange={onTimeSelected}
+							/>
+						)}
+					</Dialog.Content>
+					<Dialog.Actions>
+						<Button onPress={toggleModal}>Cancel</Button>
+						<Button mode="contained" onPress={handleMedicineAddition}>
+							Add Medicine
+						</Button>
+					</Dialog.Actions>
+				</Dialog>
+			</Portal>
+		</SafeAreaView>
 	);
 }
 
